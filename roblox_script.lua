@@ -16,27 +16,43 @@ local Window = Rayfield:CreateWindow({
 local MainTab = Window:CreateTab('Main', 4483362458)
 
 -- Step 4: add elements — every callback MUST contain real game logic, never empty
-MainTab:CreateButton({ Name='Teleport to Spawn', Callback=function()
-    local char = game.Players.LocalPlayer.Character
-    if char then char:FindFirstChild('HumanoidRootPart').CFrame = CFrame.new(0,5,0) end
-end })
 
-MainTab:CreateButton({ Name='Fire Remote', Callback=function()
-    local server = game:GetService('ServerStorage') -- replace with your server folder name
-    if server then
-        local remote = require(server:WaitForChild("YourRemoteName"))
-        if remote and remote.ServerStuff then
-            remote.ServerStuff(game.Players.LocalPlayer)
+-- Slider for speed control
+MainTab:CreateSlider({ Name='WalkSpeed', Range={0,500}, Increment=1, CurrentValue=16, Flag='SpeedFlag',
+    Callback=function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChildOfClass('Humanoid') then
+            char:FindFirstChildOfClass('Humanoid').WalkSpeed = Value
         end
     end
-end })
+})
 
-MainTab:CreateButton({ Name='Toggle Noclip', Callback=function()
+-- Toggle for speed control mode (walking/standing still)
+local SpeedMode = false
+MainTab:CreateToggle({ Name='Speed Mode', CurrentValue=false, Flag='SpeedModeFlag',
+    Callback=function(Value)
+        SpeedMode = Value
+    end
+})
+
+-- Button to change speed while walking or standing still
+MainTab:CreateButton({ Name='Change Speed', Callback=function()
     local char = game.Players.LocalPlayer.Character
     if char and char:FindFirstChildOfClass('Humanoid') then
-        char:FindFirstChildOfClass('Humanoid').CollisionSize = Vector3.new(0, 0, 0)
+        local speedValue = MainTab:GetFlaggedValue('SpeedFlag') or 16
+        local modeValue = MainTab:GetFlaggedValue('SpeedModeFlag') or false
+        local walkSpeed = speedValue
+        if modeValue == true and char:FindFirstChildOfClass('Humanoid').Walking then
+            -- Change the speed while walking
+            walkSpeed = 0
+        end
+        if modeValue == false and not char:FindFirstChildOfClass('Humanoid').Walking then
+            -- Change the speed while standing still
+            walkSpeed = 16
+        end
+        char:FindFirstChildOfClass('Humanoid').WalkSpeed = walkSpeed
     end
-end })
+})
 
 MainTab:CreateSection('Info')
 MainTab:CreateLabel('Script by GamerAI')
