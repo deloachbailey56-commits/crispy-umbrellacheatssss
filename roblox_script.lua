@@ -13,9 +13,9 @@ local Window = Rayfield:CreateWindow({
 -- Create the first tab --
 local MainTab = Window:CreateTab("Main", 4483362458)
 
--- Add a button to teleport --
-local TeleportButton = MainTab:CreateButton({
-    Name = "Teleport",
+-- Add a button to print xyz --
+local CoordButton = MainTab:CreateButton({
+    Name = "Print Coords",
     Callback = function()
         local char = game.Players.LocalPlayer.Character
 
@@ -35,6 +35,19 @@ MainTab:CreateInput({
 
         if char and char:FindFirstChildOfClass("Humanoid") then
             char.HumanoidRootPart.CFrame = CFrame.new(x or 0, y or 0, z or 0)
+        end
+    end,
+})
+
+-- Add a button to copy xyz --
+local CopyButton = MainTab:CreateButton({
+    Name = "Copy Coords",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            local x, y, z = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+            setclipboard(x .. ", " .. y .. ", " .. z)
         end
     end,
 })
