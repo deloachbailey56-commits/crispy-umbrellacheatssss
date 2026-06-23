@@ -1,61 +1,43 @@
--- Step 1: load AND execute the library (the () at the end is mandatory)
+-- Framework: Rayfield --
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Step 2: create the main window
+-- Create the main window --
 local Window = Rayfield:CreateWindow({
-    Name = 'My Cheat Menu',
-    LoadingTitle = 'Loading...',
-    LoadingSubtitle = 'by you',
-    Theme = 'Default',
+    Name = "Teleport Script",
+    LoadingTitle = "Loading...",
+    Theme = "Default",
     DisableRayfieldPrompts = false,
     DisableBuildWarnings = false,
-    KeySystem = false,
 })
 
--- Step 3: create at least one Tab — the window will NOT show without this
-local MainTab = Window:CreateTab('Main', 4483362458)
+-- Create the first tab --
+local MainTab = Window:CreateTab("Main", 4483362458)
 
--- Step 4: add elements — every callback MUST contain real game logic, never empty
-
--- Slider for speed control
-MainTab:CreateSlider({ Name='WalkSpeed', Range={0,500}, Increment=1, CurrentValue=16, Flag='SpeedFlag',
-    Callback=function(Value)
+-- Add a button to teleport --
+local TeleportButton = MainTab:CreateButton({
+    Name = "Teleport",
+    Callback = function()
         local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChildOfClass('Humanoid') then
-            char:FindFirstChildOfClass('Humanoid').WalkSpeed = Value
+
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            print("Current position: ", game.Players.LocalPlayer.Character.HumanoidRootPart.Position)
         end
-    end
+    end,
 })
 
--- Toggle for speed control mode (walking/standing still)
-local SpeedMode = false
-MainTab:CreateToggle({ Name='Speed Mode', CurrentValue=false, Flag='SpeedModeFlag',
-    Callback=function(Value)
-        SpeedMode = Value
-    end
+-- Add an input to enter coordinates --
+MainTab:CreateInput({
+    Name = "Teleport To",
+    PlaceholderText = "Enter coordinates (XYZ)",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local x, y, z = tonumber(string.match(text, "%d+"))
+
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char.HumanoidRootPart.CFrame = CFrame.new(x or 0, y or 0, z or 0)
+        end
+    end,
 })
 
--- Button to change speed while walking or standing still
-MainTab:CreateButton({ Name='Change Speed', Callback=function()
-    local char = game.Players.LocalPlayer.Character
-    if char and char:FindFirstChildOfClass('Humanoid') then
-        local speedValue = MainTab:GetFlaggedValue('SpeedFlag') or 16
-        local modeValue = MainTab:GetFlaggedValue('SpeedModeFlag') or false
-        local walkSpeed = speedValue
-        if modeValue == true and char:FindFirstChildOfClass('Humanoid').Walking then
-            -- Change the speed while walking
-            walkSpeed = 0
-        end
-        if modeValue == false and not char:FindFirstChildOfClass('Humanoid').Walking then
-            -- Change the speed while standing still
-            walkSpeed = 16
-        end
-        char:FindFirstChildOfClass('Humanoid').WalkSpeed = walkSpeed
-    end
-})
-
-MainTab:CreateSection('Info')
-MainTab:CreateLabel('Script by GamerAI')
-
--- Notifications (can be called anytime after window is created)
-Rayfield:Notify({ Title='Ready', Content='Script loaded!', Duration=5 })
+-- Notify that the script is ready --
+Rayfield:Notify({Title = "Ready", Content = "Script loaded!", Duration = 5})
