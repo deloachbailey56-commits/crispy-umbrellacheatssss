@@ -20,48 +20,51 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab('Unknown Game', 0)
 
-local fullEspOn = false
-local fBoxes={} local fBars={} local fNames={} local fVel={}
-local function removeFull(p)
-  if fBoxes[p] then fBoxes[p]:Remove() fBoxes[p]=nil end
-  if fBars[p] then fBars[p]:Remove() fBars[p]=nil end
-  if fNames[p] then fNames[p]:Remove() fNames[p]=nil end
-  if fVel[p] then fVel[p]:Remove() fVel[p]=nil end
+local flyOn = false
+local flyBody = nil
+local flyConn = nil
+local function startFly()
+  local char = LP.Character if not char then return end
+  local hrp = char:FindFirstChild('HumanoidRootPart')
+  local hum = char:FindFirstChildOfClass('Humanoid')
+  if not hrp or not hum then return end
+  hum.PlatformStand = true
+  flyBody = Instance.new('BodyVelocity')
+  flyBody.Velocity = Vector3.zero
+  flyBody.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+  flyBody.Parent = hrp
+  flyConn = RS.RenderStepped:Connect(function()
+    if not flyOn or not flyBody then return end
+    local cam = workspace.CurrentCamera
+    local dir = Vector3.zero
+    if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+    flyBody.Velocity = dir * 60
+  end)
 end
-Players.PlayerRemoving:Connect(removeFull)
-RS.RenderStepped:Connect(function()
-  for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LP and p.Character then
-      local hrp = p.Character:FindFirstChild('HumanoidRootPart')
-      local hum = p.Character:FindFirstChildOfClass('Humanoid')
-      if hrp and hum then
-        local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-        if not fBoxes[p] then
-          local b=Drawing.new('Square') b.Visible=false b.Color=Color3.new(1,0,0) b.Thickness=1 b.Filled=false fBoxes[p]=b
-          local bar=Drawing.new('Square') bar.Visible=false bar.Thickness=0 bar.Filled=true fBars[p]=bar
-          local n=Drawing.new('Text') n.Visible=false n.Color=Color3.new(1,1,1) n.Size=13 n.Center=true n.Outline=true fNames[p]=n
-          local v=Drawing.new('Text') v.Visible=false v.Color=Color3.new(0,1,1) v.Size=12 v.Center=true v.Outline=true fVel[p]=v
-        end
-        local show = fullEspOn and vis
-        fBoxes[p].Visible=show fBars[p].Visible=show fNames[p].Visible=show fVel[p].Visible=show
-        if show then
-          local sz=2000/pos.Z
-          local ratio=math.clamp(hum.Health/hum.MaxHealth,0,1)
-          fBoxes[p].Size=Vector2.new(sz,sz*2)
-          fBoxes[p].Position=Vector2.new(pos.X-sz/2,pos.Y-sz)
-          fBars[p].Size=Vector2.new(4,sz*2*ratio)
-          fBars[p].Position=Vector2.new(pos.X-sz/2-7,pos.Y-sz+(sz*2*(1-ratio)))
-          fBars[p].Color=Color3.new(1-ratio,ratio,0)
-          fNames[p].Text=p.Name..' ['..math.floor(hum.Health)..']'
-          fNames[p].Position=Vector2.new(pos.X,pos.Y-sz-15)
-          fVel[p].Text='vel:'..math.floor(hrp.Velocity.Magnitude)
-          fVel[p].Position=Vector2.new(pos.X,pos.Y+sz+4)
-        end
-      end
-    elseif fBoxes[p] then removeFull(p) end
+local function stopFly()
+  flyOn = false
+  if flyConn then flyConn:Disconnect() flyConn = nil end
+  if flyBody then flyBody:Destroy() flyBody = nil end
+  local char = LP.Character
+  if char then
+    local hum = char:FindFirstChildOfClass('Humanoid')
+    if hum then hum.PlatformStand = false end
   end
-end)
-MainTab:CreateToggle({Name='Full ESP',CurrentValue=false,Callback=function(v) fullEspOn=v end})
+end
+LP.CharacterAdded:Connect(function() if flyOn then task.wait(1) startFly() end end)
+MainTab:CreateToggle({
+  Name = 'Fly',
+  CurrentValue = false,
+  Callback = function(v)
+    flyOn = v
+    if v then startFly() else stopFly() end
+  end
+})
 
 local CobaltTab = Window:CreateTab('Remote Spy', 4483362458)
 CobaltTab:CreateButton({Name = 'Open Cobalt Spy', Callback = function() loadstring(game:HttpGet('https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau'))() end})
