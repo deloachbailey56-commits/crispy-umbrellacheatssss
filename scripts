@@ -1,290 +1,194 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local GunRemote = ReplicatedStorage:WaitForChild("Gun")
 
-local GameFolder = ReplicatedStorage:WaitForChild("Game")
-local EventsFolder = GameFolder:WaitForChild("Events")
-local ClickEvent = EventsFolder:WaitForChild("Click")
-local HatchEvent = EventsFolder:WaitForChild("Hatch")
-local RebirthEvent = EventsFolder:WaitForChild("Rebirth")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local autoFarmActive = false 
+local hitDelay = 0.05 
+local farmDistance = 60 
+local attacksPerTarget = 1 
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoControlGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = playerGui
+ScreenGui.Parent = CoreGui 
+ScreenGui.Name = "MultiTargetTracker"
+ScreenGui.Enabled = false 
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 240, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.Size = UDim2.new(0, 250, 0, 45)
+MainFrame.Position = UDim2.new(0.5, -125, 0, 15) 
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = MainFrame
 
-local dragToggle = false
-local dragStart = nil
-local startPos = nil
-
-local function updateInput(input)
-	local delta = input.Position - dragStart
-	local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	TweenService:Create(MainFrame, TweenInfo.new(0.1), {Position = position}):Play()
-end
-
-MainFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragToggle = true
-		dragStart = input.Position
-		startPos = MainFrame.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragToggle = false
-			end
-		end)
-	end
-end)
-
-MainFrame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if dragToggle then
-			updateInput(input)
-		end
-	end
-end)
-
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Text = "Automation Menu"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
-Title.Font = Enum.Font.SourceSansBold
-Title.Parent = MainFrame
-
-local UIContainer = Instance.new("Frame")
-UIContainer.Name = "UIContainer"
-UIContainer.Size = UDim2.new(1, -20, 1, -40)
-UIContainer.Position = UDim2.new(0, 10, 0, 35)
-UIContainer.BackgroundTransparency = 1
-UIContainer.Visible = false
-UIContainer.Parent = MainFrame
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Parent = UIContainer
-
-local function createButton(name, text, layoutOrder)
-	local button = Instance.new("TextButton")
-	button.Name = name
-	button.Size = UDim2.new(1, 0, 0, 38)
-	button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-	button.Text = text .. " [OFF]"
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.TextSize = 14
-	button.Font = Enum.Font.SourceSansBold
-	button.LayoutOrder = layoutOrder
-	button.Parent = UIContainer
-	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = button
-	
-	return button
-end
-
-local ClickButton = createButton("ClickButton", "Auto Click", 1)
-local HatchButton = createButton("HatchButton", "Auto Hatch", 2)
-
-local EggTextBox = Instance.new("TextBox")
-EggTextBox.Name = "EggTextBox"
-EggTextBox.Size = UDim2.new(1, 0, 0, 32)
-EggTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-EggTextBox.BorderSizePixel = 0
-EggTextBox.Text = "Starter"
-EggTextBox.PlaceholderText = "Type Egg Name..."
-EggTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-EggTextBox.TextSize = 14
-EggTextBox.Font = Enum.Font.SourceSans
-EggTextBox.LayoutOrder = 3
-EggTextBox.Parent = UIContainer
-
-local boxCorner = Instance.new("UICorner")
-boxCorner.CornerRadius = UDim.new(0, 6)
-boxCorner.Parent = EggTextBox
-
-local RebirthButton = createButton("RebirthButton", "Auto Rebirth", 4)
-
-local RebirthTextBox = Instance.new("TextBox")
-RebirthTextBox.Name = "RebirthTextBox"
-RebirthTextBox.Size = UDim2.new(1, 0, 0, 32)
-RebirthTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-RebirthTextBox.BorderSizePixel = 0
-RebirthTextBox.Text = "1"
-RebirthTextBox.PlaceholderText = "Rebirth Amount..."
-RebirthTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-RebirthTextBox.TextSize = 14
-RebirthTextBox.Font = Enum.Font.SourceSans
-RebirthTextBox.LayoutOrder = 5
-RebirthTextBox.Parent = UIContainer
-
-local rebirthBoxCorner = Instance.new("UICorner")
-rebirthBoxCorner.CornerRadius = UDim.new(0, 6)
-rebirthBoxCorner.Parent = RebirthTextBox
-
-local LockOverlayFrame = Instance.new("Frame")
-LockOverlayFrame.Name = "LockOverlayFrame"
-LockOverlayFrame.Size = UDim2.new(1, -20, 1, -40)
-LockOverlayFrame.Position = UDim2.new(0, 10, 0, 35)
-LockOverlayFrame.BackgroundTransparency = 1
-LockOverlayFrame.Visible = true
-LockOverlayFrame.Parent = MainFrame
-
-local LockListLayout = Instance.new("UIListLayout")
-LockListLayout.Padding = UDim.new(0, 10)
-LockListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-LockListLayout.Parent = LockOverlayFrame
-
-local setclipb = setclipboard or toclipboard or (Clipboard and Clipboard.set)
-
-local JoinButton = Instance.new("TextButton")
-JoinButton.Name = "JoinButton"
-JoinButton.Size = UDim2.new(1, 0, 0, 50)
-JoinButton.BackgroundColor3 = Color3.fromRGB(114, 137, 218)
-JoinButton.Text = "Join Discord Server"
-JoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-JoinButton.TextSize = 14
-JoinButton.Font = Enum.Font.SourceSansBold
-JoinButton.LayoutOrder = 1
-JoinButton.Parent = LockOverlayFrame
-
-local joinCorner = Instance.new("UICorner")
-joinCorner.CornerRadius = UDim.new(0, 6)
-joinCorner.Parent = JoinButton
-
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "StatusLabel"
-StatusLabel.Size = UDim2.new(1, 0, 0, 40)
+StatusLabel.Size = UDim2.new(1, 0, 1, 0)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Unlocking in 10s..."
-StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.Text = "MULTI-FARM: OFF"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
-StatusLabel.Font = Enum.Font.SourceSansItalic
-StatusLabel.LayoutOrder = 2
-StatusLabel.Parent = LockOverlayFrame
+StatusLabel.Parent = MainFrame
 
-local states = { Click = false, Hatch = false, Rebirth = false }
-local cooldowns = { Click = 0.1, Hatch = 0.7, Rebirth = 0.5 }
-local isUnlocked = false
-local copyActive = false
-
-local function tweenColor(object, targetColor)
-	local info = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	TweenService:Create(object, info, {BackgroundColor3 = targetColor}):Play()
+local function getRawCoordinates(instance)
+    if not instance then return 0, 0, 0 end
+    local position = instance.Position
+    if type(position) == "table" then
+        return position[1] or position.X or 0, position[2] or position.Y or 0, position[3] or position.Z or 0
+    elseif typeof(position) == "Vector3" then
+        return position.X, position.Y, position.Z
+    end
+    return 0, 0, 0
 end
 
-local function startClickLoop()
-	while states.Click and isUnlocked do
-		ClickEvent:FireServer()
-		task.wait(cooldowns.Click)
-	end
+local function isZombieActive(zombie)
+    if not zombie or not zombie.Parent then return false end
+    
+    local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+    local root = zombie:FindFirstChild("HumanoidRootPart")
+    
+    if humanoid and root and humanoid.Health > 0 then
+        if humanoid.Jump then
+            return true
+        end
+        local velocity = root.AssemblyLinearVelocity
+        if typeof(velocity) == "Vector3" and velocity.Magnitude > 0.1 then
+            return true
+        elseif type(velocity) == "table" then
+            local vx = velocity[1] or velocity.X or 0
+            local vy = velocity[2] or velocity.Y or 0
+            local vz = velocity[3] or velocity.Z or 0
+            if math.sqrt(vx^2 + vy^2 + vz^2) > 0.1 then
+                return true
+            end
+        end
+    end
+    return false
 end
 
-local function startHatchLoop()
-	while states.Hatch and isUnlocked do
-		local currentEgg = EggTextBox.Text
-		HatchEvent:FireServer("E", currentEgg)
-		task.wait(cooldowns.Hatch)
-	end
+local function getTopFiveTargets()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then 
+        return {} 
+    end
+    
+    local myX, myY, myZ = getRawCoordinates(character.HumanoidRootPart)
+    local validEnemies = {}
+    local enemiesFolder = workspace:FindFirstChild("enemies")
+    
+    if enemiesFolder then
+        for _, obj in ipairs(enemiesFolder:GetChildren()) do
+            if obj:IsA("Model") and isZombieActive(obj) then
+                local root = obj:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local zX, zY, zZ = getRawCoordinates(root)
+                    local distance = math.sqrt((zX - myX)^2 + (zY - myY)^2 + (zZ - myZ)^2)
+                    
+                    if distance < farmDistance then
+                        table.insert(validEnemies, {instance = obj, dist = distance})
+                    end
+                end
+            end
+        end
+    end
+    
+    table.sort(validEnemies, function(a, b)
+        return a.dist < b.dist
+    end)
+    
+    local targets = {}
+    for i = 1, math.min(5, #validEnemies) do
+        table.insert(targets, validEnemies[i].instance)
+    end
+    
+    return targets
 end
 
-local function startRebirthLoop()
-	while states.Rebirth and isUnlocked do
-		local amountNum = tonumber(RebirthTextBox.Text) or 1
-		RebirthEvent:FireServer(1, amountNum)
-		task.wait(cooldowns.Rebirth)
-	end
+local function getEquippedWeaponName()
+    local character = LocalPlayer.Character
+    if character then
+        local tool = character:FindFirstChildOfClass("Tool")
+        if tool then
+            return tool.Name
+        end
+    end
+    return "Pistol" 
 end
-
-JoinButton.MouseButton1Click:Connect(function()
-	local fullLink = "https://discord.gg"
-	if setclipb then setclipb(fullLink) end
-	
-	if not copyActive then
-		copyActive = true
-		JoinButton.Text = "Link Copied!"
-		tweenColor(JoinButton, Color3.fromRGB(50, 180, 50))
-		task.wait(2)
-		JoinButton.Text = "Join Discord Server"
-		tweenColor(JoinButton, Color3.fromRGB(114, 137, 218))
-		copyActive = false
-	end
-end)
-
-ClickButton.MouseButton1Click:Connect(function()
-	if not isUnlocked then return end
-	states.Click = not states.Click
-	if states.Click then
-		ClickButton.Text = "Auto Click [ON]"
-		tweenColor(ClickButton, Color3.fromRGB(50, 180, 50))
-		task.spawn(startClickLoop)
-	else
-		ClickButton.Text = "Auto Click [OFF]"
-		tweenColor(ClickButton, Color3.fromRGB(200, 50, 50))
-	end
-end)
-
-HatchButton.MouseButton1Click:Connect(function()
-	if not isUnlocked then return end
-	states.Hatch = not states.Hatch
-	if states.Hatch then
-		HatchButton.Text = "Auto Hatch [ON]"
-		tweenColor(HatchButton, Color3.fromRGB(50, 180, 50))
-		task.spawn(startHatchLoop)
-	else
-		HatchButton.Text = "Auto Hatch [OFF]"
-		tweenColor(HatchButton, Color3.fromRGB(200, 50, 50))
-	end
-end)
-
-RebirthButton.MouseButton1Click:Connect(function()
-	if not isUnlocked then return end
-	states.Rebirth = not states.Rebirth
-	if states.Rebirth then
-		RebirthButton.Text = "Auto Rebirth [ON]"
-		tweenColor(RebirthButton, Color3.fromRGB(50, 180, 50))
-		task.spawn(startRebirthLoop)
-	else
-		RebirthButton.Text = "Auto Rebirth [OFF]"
-		tweenColor(RebirthButton, Color3.fromRGB(200, 50, 50))
-	end
-end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-	if gameProcessedEvent then return end
-	if input.KeyCode == Enum.KeyCode.E then
-		MainFrame.Visible = not MainFrame.Visible
-	end
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.Q then
+        autoFarmActive = not autoFarmActive
+        ScreenGui.Enabled = autoFarmActive 
+        
+        if autoFarmActive then
+            StatusLabel.Text = "MULTI-FARM: ACTIVE"
+            StatusLabel.TextColor3 = Color3.fromRGB(85, 255, 127)
+        else
+            StatusLabel.Text = "MULTI-FARM: OFF"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+        end
+    end
 end)
 
 task.spawn(function()
-	for i = 10, 1, -1 do
-		StatusLabel.Text = "Unlocking in " .. i .. "s..."
-		task.wait(1)
-	end
-	isUnlocked = true
-	LockOverlayFrame.Visible = false
-	UIContainer.Visible = true
+    while true do
+        task.wait(hitDelay)
+        
+        if autoFarmActive then
+            local targets = getTopFiveTargets()
+            local myCharacter = LocalPlayer.Character
+            
+            if #targets > 0 and myCharacter and myCharacter:FindFirstChild("HumanoidRootPart") then
+                local myRoot = myCharacter.HumanoidRootPart
+                local weaponName = getEquippedWeaponName()
+                local myX, myY, myZ = getRawCoordinates(myRoot)
+                
+                StatusLabel.Text = "ATTACKING: " .. #targets .. " TARGETS"
+                StatusLabel.TextColor3 = Color3.fromRGB(85, 255, 127)
+                
+                for _, target in ipairs(targets) do
+                    local targetRoot = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Head")
+                    if targetRoot then
+                        local tX, tY, tZ = getRawCoordinates(targetRoot)
+                        
+                        local diffX = tX - myX
+                        local diffY = tY - myY
+                        local diffZ = tZ - myZ
+                        local length = math.sqrt(diffX^2 + diffY^2 + diffZ^2)
+                        
+                        local dirX, dirY, dirZ = 0, 0, 0
+                        if length > 0 then
+                            dirX = diffX / length
+                            dirY = diffY / length
+                            dirZ = diffZ / length
+                        end
+                        
+                        local ohTable1 = {
+                            ["Normal"] = { -0.81055, 0.40613, -0.42195 }, 
+                            ["Direction"] = { dirX * farmDistance, dirY * farmDistance, dirZ * farmDistance },
+                            ["Name"] = weaponName,
+                            ["Hit"] = targetRoot,
+                            ["Origin"] = { myX, myY, myZ },
+                            ["Pos"] = { tX, tY, tZ }
+                        }
+                        
+                        for i = 1, attacksPerTarget do
+                            GunRemote:FireServer(ohTable1)
+                        end
+                    end
+                end
+            else
+                if autoFarmActive then
+                    StatusLabel.Text = "MULTI-FARM: SEARCHING..."
+                    StatusLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+                end
+            end
+        end
+    end
 end)
