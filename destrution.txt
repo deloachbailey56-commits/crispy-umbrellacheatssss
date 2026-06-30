@@ -1,0 +1,123 @@
+getgenv().RAYFIELD_ASSET_ID = 110785486010149
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local BoostRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("generateBoost")
+local ExplodeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("explodeRocket")
+local SellRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("sellBricks")
+local AreaRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("areaChanged")
+
+local rocketAttackID, explosionRadius = 1782838950.9988751, 15
+local selectedArea = "Select Area..."
+
+-- Generate dynamic list of available maps from workspace directory
+local function getAreaOptions()
+    local options = {}
+    local areasFolder = workspace:FindFirstChild("Areas")
+    if areasFolder then
+        for _, folder in ipairs(areasFolder:GetChildren()) do
+            if folder:IsA("Folder") then
+                table.insert(options, folder.Name)
+            end
+        end
+    end
+    if #options == 0 then table.insert(options, "Area1") end -- Default fallback
+    return options
+end
+
+-- Initialize Window UI Setup
+local Window = Rayfield:CreateWindow({
+   Name = "Exploitation Hub Menu",
+   LoadingTitle = "Loading System Packages...",
+   LoadingSubtitle = "by Loop",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   Discord = {
+      Enabled = false
+   },
+   KeySystem = false
+})
+
+local MainTab = Window:CreateTab("Main Utilities", nil)
+
+-- Dropdown Component Integration
+local AreaDropdown = MainTab:CreateDropdown({
+   Name = "Select Target Area",
+   Options = getAreaOptions(),
+   CurrentOption = {"Select Area..."},
+   MultipleOptions = false,
+   Callback = function(Option)
+      selectedArea = Option[1]
+   end,
+})
+
+-- Demolition Execution Action Button Component
+MainTab:CreateButton({
+   Name = "EXECUTE AREA DEMOLITION",
+   Callback = function()
+      if selectedArea == "Select Area..." then
+         Rayfield:Notify({Name = "Error", Content = "Please select a target zone first!", Duration = 3})
+         return
+      end
+
+      local lnc = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Launcher")) or LocalPlayer.Backpack:FindFirstChild("Launcher")
+      if not lnc then 
+         Rayfield:Notify({Name = "Error", Content = "Equip or carry a Launcher!", Duration = 3})
+         return 
+      end
+      
+      local stats = lnc:FindFirstChild("Stats")
+      local boom = lnc:FindFirstChild("Assets") and lnc.Assets:FindFirstChild("Rocket") and lnc.Assets.Rocket:FindFirstChild("Boom")
+      if not stats or not boom then 
+         Rayfield:Notify({Name = "Error", Content = "Launcher assets are missing!", Duration = 3})
+         return 
+      end
+      
+      local target = workspace.Areas:FindFirstChild(selectedArea) 
+      if not target then 
+         Rayfield:Notify({Name = "Error", Content = "Target directory not found!", Duration = 3})
+         return 
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Synchronizing zone validation...", Duration = 2})
+      AreaRemote:FireServer(selectedArea) 
+      task.wait(0.1)
+      
+      Rayfield:Notify({Name = "Status", Content = "Resolving proximity calculations...", Duration = 2})
+      local tracking, fired = {}, 0
+      for _, item in ipairs(target:GetDescendants()) do
+         if item:IsA("BasePart") then
+            local pos, covered = item.Position, false
+            for _, ePos in ipairs(tracking) do if (pos - ePos).Magnitude < explosionRadius then covered = true break end end
+            if not covered then
+               table.insert(tracking, pos) 
+               fired = fired + 1
+               ExplodeRemote:FireServer(rocketAttackID, stats, pos, boom)
+               if fired % 5 == 0 then task.wait(0.01) end
+            end
+         end
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Sequence complete. Selling field in 10 seconds...", Duration = 5})
+      task.spawn(function()
+         task.wait(10)
+         SellRemote:FireServer()
+         task.wait(0.5)
+         AreaRemote:FireServer("NoZone")
+         Rayfield:Notify({Name = "Status", Content = "Cycled automation routine complete.", Duration = 3})
+      end)
+   end,
+})
+
+-- Economy Booster Trigger Component
+MainTab:CreateButton({
+   Name = "INJECT COIN INFUSION BOOST",
+   Callback = function()
+      BoostRemote:FireServer("CoinBoost", 180, 2)
+      Rayfield:Notify({Name = "Success", Content = "Coin boost packet successfully sent!", Duration = 3})
+   end,
+})
