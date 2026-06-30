@@ -1,0 +1,94 @@
+local existingGui = game:GetService("CoreGui"):FindFirstChild("CustomLevelFarmUI")
+if existingGui then existingGui:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local WinButton = Instance.new("TextButton")
+local ButtonCorner = Instance.new("UICorner")
+local StatusLabel = Instance.new("TextLabel")
+
+ScreenGui.Name = "CustomLevelFarmUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 110)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 10, 0, 10)
+StatusLabel.Size = UDim2.new(0, 200, 0, 25)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.Text = "Cart Ride Farm"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 18
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+WinButton.Name = "WinButton"
+WinButton.Parent = MainFrame
+WinButton.BackgroundColor3 = Color3.fromRGB(45, 125, 245)
+WinButton.BorderSizePixel = 0
+WinButton.Position = UDim2.new(0, 15, 0, 45)
+WinButton.Size = UDim2.new(0, 190, 0, 45)
+WinButton.Font = Enum.Font.SourceSansBold
+WinButton.Text = "Unlock Last Level"
+WinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+WinButton.TextSize = 16
+
+ButtonCorner.CornerRadius = UDim.new(0, 6)
+ButtonCorner.Parent = WinButton
+
+local objectsFolder = game:GetService("Workspace").CartRideWorkspace.Objects
+local levelUpRemote = game:GetService("ReplicatedStorage").Events.LevelUp
+
+local function findLastLevelModel()
+    local highestLevel = 0
+    local targetModel = nil
+
+    for _, model in pairs(objectsFolder:GetChildren()) do
+        if model:IsA("Model") and model.Name == "LevelSpawn" then
+            for _, descendant in pairs(model:GetDescendants()) do
+                if descendant:IsA("TextLabel") or descendant:IsA("TextBox") then
+                    local levelNum = tonumber(string.match(descendant.Text, "%d+"))
+                    if levelNum and levelNum > highestLevel then
+                        highestLevel = levelNum
+                        targetModel = model
+                    end
+                end
+            end
+        end
+    end
+    return targetModel, highestLevel
+end
+
+WinButton.MouseButton1Click:Connect(function()
+    StatusLabel.Text = "Scanning levels..."
+    StatusLabel.TextColor3 = Color3.fromRGB(240, 200, 50)
+    
+    local finalModel, finalLevelNum = findLastLevelModel()
+    
+    if finalModel then
+        levelUpRemote:FireServer(finalModel)
+        StatusLabel.Text = "Fired Stage: " .. tostring(finalLevelNum)
+        StatusLabel.TextColor3 = Color3.fromRGB(50, 220, 100)
+    else
+        StatusLabel.Text = "Scan Error!"
+        StatusLabel.TextColor3 = Color3.fromRGB(240, 50, 50)
+    end
+    
+    task.delay(3, function()
+        StatusLabel.Text = "Cart Ride Farm"
+        StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end)
+end)
