@@ -1,0 +1,73 @@
+getgenv().RAYFIELD_ASSET_ID = 110785486010149
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService('Players')
+local RS      = game:GetService('RunService')
+local UIS     = game:GetService('UserInputService')
+local LP      = Players.LocalPlayer
+
+local Window = Rayfield:CreateWindow({
+    Name                   = "Unknown Game Cheats",
+    Icon                   = 0,
+    LoadingTitle           = "Loading",
+    LoadingSubtitle        = "",
+    Theme                  = "Default",
+    ToggleUIKeybind        = "K",
+})
+
+local MainTab = Window:CreateTab('Main', 0)
+
+local _lfrName='MouseClicked' local _lfrOn=false local _lfrDelay=0.5
+MainTab:CreateToggle({Name='Auto Fire Remote',CurrentValue=false,Callback=function(v) _lfrOn=v end})
+task.spawn(function()
+  while true do
+    if _lfrOn then
+      local re=game:GetService('ReplicatedStorage'):FindFirstChild(_lfrName,true)
+      if re and re:IsA('RemoteEvent') then re:FireServer() end
+    end
+    task.wait(_lfrDelay)
+  end
+end)
+
+
+local espEnabled = false
+local espBoxes = {}
+local espNames = {}
+local function removeEsp(p)
+  if espBoxes[p] then espBoxes[p]:Remove() espBoxes[p]=nil end
+  if espNames[p] then espNames[p]:Remove() espNames[p]=nil end
+end
+Players.PlayerRemoving:Connect(removeEsp)
+RS.RenderStepped:Connect(function()
+  for _,p in pairs(Players:GetPlayers()) do
+    if p~=LP and p.Character then
+      local hrp = p.Character:FindFirstChild('HumanoidRootPart')
+      if hrp then
+        local pos,vis = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+        if not espBoxes[p] then
+          local b=Drawing.new('Square') b.Visible=false b.Color=Color3.fromRGB(255, 0, 0) b.Thickness=1 b.Filled=false espBoxes[p]=b
+          local n=Drawing.new('Text') n.Visible=false n.Color=Color3.fromRGB(255, 255, 255) n.Size=14 n.Center=true n.Outline=true espNames[p]=n
+        end
+        espBoxes[p].Visible=espEnabled and vis
+        espNames[p].Visible=espEnabled and vis
+        if vis and espEnabled then
+          local sz=2000/pos.Z
+          espBoxes[p].Size=Vector2.new(sz,sz*2)
+          espBoxes[p].Position=Vector2.new(pos.X-sz/2,pos.Y-sz)
+          espNames[p].Text=p.Name
+          espNames[p].Position=Vector2.new(pos.X,pos.Y-sz-16)
+        end
+      end
+    elseif espBoxes[p] then
+      removeEsp(p)
+    end
+  end
+end)
+MainTab:CreateToggle({Name='Player ESP',CurrentValue=false,Callback=function(v) espEnabled=v end})
+
+
+-- Values tab (always last)
+local ValuesTab = Window:CreateTab('Values', 4483362458)
+ValuesTab:CreateButton({Name = 'Cobalt Spy', Callback = function() loadstring(game:HttpGet('https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau'))() end})
+ValuesTab:CreateButton({Name = 'Hydroxide', Callback = function() local _o='Upbolt' local _b='revision' local function _wi(f) return loadstring(game:HttpGetAsync(('https://raw.githubusercontent.com/%s/Hydroxide/%s/%s.lua'):format(_o,_b,f)),f..'.lua')() end _wi('init') _wi('ui/main') end})
