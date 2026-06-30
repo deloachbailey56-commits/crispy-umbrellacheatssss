@@ -18,33 +18,50 @@ local Window = Rayfield:CreateWindow({
     DisableBuildWarnings   = false,
 })
 
-local MainTab = Window:CreateTab('Teleport Player', 0)
+local MainTab = Window:CreateTab('Player Stats', 0)
 
-local function getPlayerNames()
-  local t={} for _,p in pairs(Players:GetPlayers()) do if p~=LP then t[#t+1]=p.Name end end return t
+local statsEnabled = false
+local statsDrawings = {}
+local function removeStats(p)
+  if statsDrawings[p] then
+    for _, d in pairs(statsDrawings[p]) do d:Remove() end
+    statsDrawings[p] = nil
+  end
 end
-local tpDD = MainTab:CreateDropdown({
-  Name='Select Player',
-  Options=getPlayerNames(),
-  CurrentOption={},
-  Callback=function() end
-})
-MainTab:CreateButton({
-  Name='Teleport',
-  Callback=function()
-    local sel = tpDD.CurrentOption[1]
-    local target = Players:FindFirstChild(sel)
-    if target and target.Character then
-      local hrp = LP.Character and LP.Character:FindFirstChild('HumanoidRootPart')
-      local tHRP = target.Character:FindFirstChild('HumanoidRootPart')
-      if hrp and tHRP then hrp.CFrame = tHRP.CFrame * CFrame.new(0,0,-3) end
+Players.PlayerRemoving:Connect(removeStats)
+task.spawn(function()
+  while true do
+    task.wait(0.5)
+    if not statsEnabled then
+      for p in pairs(statsDrawings) do removeStats(p) end
+    else
+      for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+          local hrp = p.Character:FindFirstChild('HumanoidRootPart')
+          local hum = p.Character:FindFirstChildOfClass('Humanoid')
+          if hrp and hum then
+            local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+            if not statsDrawings[p] then
+              local t = Drawing.new('Text') t.Size=13 t.Color=Color3.new(0,1,1) t.Outline=true t.Center=true t.Visible=false
+              statsDrawings[p] = {t}
+            end
+            local vel = math.floor(hrp.Velocity.Magnitude)
+            local hp = math.floor(hum.Health)
+            local maxhp = math.floor(hum.MaxHealth)
+            statsDrawings[p][1].Visible = vis
+            if vis then
+              statsDrawings[p][1].Position = Vector2.new(pos.X, pos.Y - 60)
+              statsDrawings[p][1].Text = p.Name .. '  HP:'..hp..'/'..maxhp..'  Vel:'..vel
+            end
+          end
+        elseif statsDrawings[p] then
+          removeStats(p)
+        end
+      end
     end
   end
-})
-MainTab:CreateButton({
-  Name='Refresh Players',
-  Callback=function() tpDD:Refresh(getPlayerNames()) end
-})
+end)
+MainTab:CreateToggle({Name='Player Stats (Health+Vel)',CurrentValue=false,Callback=function(v) statsEnabled=v end})
 
 -- Cobalt Remote Spy (always last)
 local CobaltTab = Window:CreateTab('Remote Spy', 4483362458)
