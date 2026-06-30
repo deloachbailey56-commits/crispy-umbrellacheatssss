@@ -1,6 +1,8 @@
+getgenv().RAYFIELD_ASSET_ID = 110785486010149
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local BoostRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("generateBoost")
@@ -9,92 +11,113 @@ local SellRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("sellB
 local AreaRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("areaChanged")
 
 local rocketAttackID, explosionRadius = 1782838950.9988751, 15
+local selectedArea = "Select Area..."
 
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "LocalUtilityDashboard"
-
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size, Main.Position, Main.BackgroundColor3, Main.BorderSizePixel, Main.Active, Main.Draggable = UDim2.new(0, 220, 0, 195), UDim2.new(0.5, -110, 0.4, -97), Color3.fromRGB(18, 18, 18), 0, true, true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 6)
-
-local ExplodeBtn = Instance.new("TextButton", Main)
-ExplodeBtn.Size, ExplodeBtn.Position, ExplodeBtn.BackgroundColor3, ExplodeBtn.Text, ExplodeBtn.TextColor3, ExplodeBtn.Font, ExplodeBtn.TextSize = UDim2.new(1, -20, 0, 42), UDim2.new(0, 10, 0, 65), Color3.fromRGB(32, 32, 32), "BLOW UP SELECT AREA", Color3.fromRGB(240, 240, 240), Enum.Font.GothamBold, 11
-Instance.new("UICorner", ExplodeBtn).CornerRadius = UDim.new(0, 4)
-
-local BoostBtn = Instance.new("TextButton", Main)
-BoostBtn.Size, BoostBtn.Position, BoostBtn.BackgroundColor3, BoostBtn.Text, BoostBtn.TextColor3, BoostBtn.Font, BoostBtn.TextSize = UDim2.new(1, -20, 0, 42), UDim2.new(0, 10, 0, 120), Color3.fromRGB(32, 32, 32), "GIVE INF 10HR BOOST", Color3.fromRGB(240, 240, 240), Enum.Font.GothamBold, 11
-Instance.new("UICorner", BoostBtn).CornerRadius = UDim.new(0, 4)
-
-local DropBtn = Instance.new("TextButton", Main)
-DropBtn.Size, DropBtn.Position, DropBtn.BackgroundColor3, DropBtn.Text, DropBtn.TextColor3, DropBtn.Font, DropBtn.TextSize = UDim2.new(1, -20, 0, 35), UDim2.new(0, 10, 0, 15), Color3.fromRGB(26, 26, 26), "Select Area...", Color3.fromRGB(220, 220, 220), Enum.Font.GothamBold, 11
-Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 4)
-
-local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size, Scroll.Position, Scroll.BackgroundColor3, Scroll.BorderSizePixel, Scroll.ZIndex, Scroll.Visible, Scroll.ScrollBarThickness = UDim2.new(1, -20, 0, 80), UDim2.new(0, 10, 0, 52), Color3.fromRGB(22, 22, 22), 0, 5, false, 2
-Instance.new("UICorner", Scroll).CornerRadius = UDim.new(0, 4)
-local Layout = Instance.new("UIListLayout", Scroll)
-Layout.Padding, Layout.SortOrder = UDim.new(0, 2), Enum.SortOrder.LayoutOrder
-
-DropBtn.MouseButton1Click:Connect(function()
-	Scroll.Visible = not Scroll.Visible
-	ExplodeBtn.Position = Scroll.Visible and UDim2.new(0, 10, 0, 135) or UDim2.new(0, 10, 0, 65)
-	BoostBtn.Visible = not Scroll.Visible
-	
-	for _, child in ipairs(Scroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
-	local fld, count = workspace:FindFirstChild("Areas"), 0
-	if fld then
-		for _, folder in ipairs(fld:GetChildren()) do
-			if folder:IsA("Folder") then
-				count = count + 1
-				local btn = Instance.new("TextButton", Scroll)
-				btn.Size, btn.BackgroundColor3, btn.BorderSizePixel, btn.Text, btn.TextColor3, btn.Font, btn.TextSize, btn.ZIndex = UDim2.new(1, 0, 0, 25), Color3.fromRGB(28, 28, 28), 0, folder.Name, Color3.fromRGB(180, 180, 180), Enum.Font.GothamMedium, 11, 6
-				btn.MouseButton1Click:Connect(function() DropBtn.Text, Scroll.Visible, ExplodeBtn.Position, BoostBtn.Visible = folder.Name, false, UDim2.new(0, 10, 0, 65), true end)
-			end
-		end
-	end
-	Scroll.CanvasSize = UDim2.new(0, 0, 0, count * 27)
-end)
-
-local function getEquippedLauncher()
-	local char = LocalPlayer.Character
-	return (char and char:FindFirstChild("Launcher")) or LocalPlayer.Backpack:FindFirstChild("Launcher")
+-- Generate dynamic list of available maps from workspace directory
+local function getAreaOptions()
+    local options = {}
+    local areasFolder = workspace:FindFirstChild("Areas")
+    if areasFolder then
+        for _, folder in ipairs(areasFolder:GetChildren()) do
+            if folder:IsA("Folder") then
+                table.insert(options, folder.Name)
+            end
+        end
+    end
+    if #options == 0 then table.insert(options, "Area1") end -- Default fallback
+    return options
 end
 
-BoostBtn.MouseButton1Click:Connect(function()
-	BoostRemote:FireServer("CoinBoost", 36000, 999999)
-end)
+-- Initialize Window UI Setup
+local Window = Rayfield:CreateWindow({
+   Name = "Exploitation Hub Menu",
+   LoadingTitle = "Loading System Packages...",
+   LoadingSubtitle = "by Loop",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   Discord = {
+      Enabled = false
+   },
+   KeySystem = false
+})
 
-ExplodeBtn.MouseButton1Click:Connect(function()
-	local area = DropBtn.Text if area == "Select Area..." then return end
-	local lnc = getEquippedLauncher() if not lnc then return end
-	local stats = lnc:FindFirstChild("Stats")
-	local boom = lnc:FindFirstChild("Assets") and lnc.Assets:FindFirstChild("Rocket") and lnc.Assets.Rocket:FindFirstChild("Boom")
-	if not stats or not boom then return end
-	local target = workspace.Areas:FindFirstChild(area) if not target then return end
-	
-	AreaRemote:FireServer(area) task.wait(0.1)
-	
-	local tracking, fired = {}, 0
-	for _, item in ipairs(target:GetDescendants()) do
-		if item:IsA("BasePart") then
-			local pos, covered = item.Position, false
-			for _, ePos in ipairs(tracking) do if (pos - ePos).Magnitude < explosionRadius then covered = true break end end
-			if not covered then
-				table.insert(tracking, pos) fired = fired + 1
-				ExplodeRemote:FireServer(rocketAttackID, stats, item, boom)
-				if fired % 5 == 0 then task.wait(0.02) end
-			end
-		end
-	end
-	
-	task.spawn(function()
-		task.wait(10)
-		SellRemote:FireServer()
-		task.wait(0.5)
-		AreaRemote:FireServer("NoZone")
-	end)
-end)
+local MainTab = Window:CreateTab("Main Utilities", nil)
 
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then ScreenGui.Enabled = not ScreenGui.Enabled end
-end)
+-- Dropdown Component Integration
+local AreaDropdown = MainTab:CreateDropdown({
+   Name = "Select Target Area",
+   Options = getAreaOptions(),
+   CurrentOption = {"Select Area..."},
+   MultipleOptions = false,
+   Callback = function(Option)
+      selectedArea = Option[1]
+   end,
+})
+
+-- Demolition Execution Action Button Component
+MainTab:CreateButton({
+   Name = "EXECUTE AREA DEMOLITION",
+   Callback = function()
+      if selectedArea == "Select Area..." then
+         Rayfield:Notify({Name = "Error", Content = "Please select a target zone first!", Duration = 3})
+         return
+      end
+
+      local lnc = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Launcher")) or LocalPlayer.Backpack:FindFirstChild("Launcher")
+      if not lnc then 
+         Rayfield:Notify({Name = "Error", Content = "Equip or carry a Launcher!", Duration = 3})
+         return 
+      end
+      
+      local stats = lnc:FindFirstChild("Stats")
+      local boom = lnc:FindFirstChild("Assets") and lnc.Assets:FindFirstChild("Rocket") and lnc.Assets.Rocket:FindFirstChild("Boom")
+      if not stats or not boom then 
+         Rayfield:Notify({Name = "Error", Content = "Launcher assets are missing!", Duration = 3})
+         return 
+      end
+      
+      local target = workspace.Areas:FindFirstChild(selectedArea) 
+      if not target then 
+         Rayfield:Notify({Name = "Error", Content = "Target directory not found!", Duration = 3})
+         return 
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Synchronizing zone validation...", Duration = 2})
+      AreaRemote:FireServer(selectedArea) 
+      task.wait(0.1)
+      
+      Rayfield:Notify({Name = "Status", Content = "Resolving proximity calculations...", Duration = 2})
+      local tracking, fired = {}, 0
+      for _, item in ipairs(target:GetDescendants()) do
+         if item:IsA("BasePart") then
+            local pos, covered = item.Position, false
+            for _, ePos in ipairs(tracking) do if (pos - ePos).Magnitude < explosionRadius then covered = true break end end
+            if not covered then
+               table.insert(tracking, pos) 
+               fired = fired + 1
+               ExplodeRemote:FireServer(rocketAttackID, stats, pos, boom)
+               if fired % 5 == 0 then task.wait(0.01) end
+            end
+         end
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Sequence complete. Selling field in 10 seconds...", Duration = 5})
+      task.spawn(function()
+         task.wait(10)
+         SellRemote:FireServer()
+         task.wait(0.5)
+         AreaRemote:FireServer("NoZone")
+         Rayfield:Notify({Name = "Status", Content = "Cycled automation routine complete.", Duration = 3})
+      end)
+   end,
+})
+
+-- Economy Booster Trigger Component
+MainTab:CreateButton({
+   Name = "INJECT COIN INFUSION BOOST",
+   Callback = function()
+      BoostRemote:FireServer("CoinBoost", 180, 2)
+      Rayfield:Notify({Name = "Success", Content = "Coin boost packet successfully sent!", Duration = 3})
+   end,
+})
