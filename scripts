@@ -7,6 +7,7 @@ local GameFolder = ReplicatedStorage:WaitForChild("Game")
 local EventsFolder = GameFolder:WaitForChild("Events")
 local ClickEvent = EventsFolder:WaitForChild("Click")
 local HatchEvent = EventsFolder:WaitForChild("Hatch")
+local RebirthEvent = EventsFolder:WaitForChild("Rebirth")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -18,8 +19,8 @@ ScreenGui.Parent = playerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 220)
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -110)
+MainFrame.Size = UDim2.new(0, 240, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -81,14 +82,14 @@ UIContainer.Visible = false
 UIContainer.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = UIContainer
 
 local function createButton(name, text, layoutOrder)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(1, 0, 0, 45)
+	button.Size = UDim2.new(1, 0, 0, 38)
 	button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 	button.Text = text .. " [OFF]"
 	button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -109,11 +110,11 @@ local HatchButton = createButton("HatchButton", "Auto Hatch", 2)
 
 local EggTextBox = Instance.new("TextBox")
 EggTextBox.Name = "EggTextBox"
-EggTextBox.Size = UDim2.new(1, 0, 0, 35)
+EggTextBox.Size = UDim2.new(1, 0, 0, 32)
 EggTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 EggTextBox.BorderSizePixel = 0
 EggTextBox.Text = "Starter"
-EggTextBox.PlaceholderText = "Type Egg Name Here..."
+EggTextBox.PlaceholderText = "Type Egg Name..."
 EggTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 EggTextBox.TextSize = 14
 EggTextBox.Font = Enum.Font.SourceSans
@@ -123,6 +124,25 @@ EggTextBox.Parent = UIContainer
 local boxCorner = Instance.new("UICorner")
 boxCorner.CornerRadius = UDim.new(0, 6)
 boxCorner.Parent = EggTextBox
+
+local RebirthButton = createButton("RebirthButton", "Auto Rebirth", 4)
+
+local RebirthTextBox = Instance.new("TextBox")
+RebirthTextBox.Name = "RebirthTextBox"
+RebirthTextBox.Size = UDim2.new(1, 0, 0, 32)
+RebirthTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+RebirthTextBox.BorderSizePixel = 0
+RebirthTextBox.Text = "1"
+RebirthTextBox.PlaceholderText = "Rebirth Amount..."
+RebirthTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+RebirthTextBox.TextSize = 14
+RebirthTextBox.Font = Enum.Font.SourceSans
+RebirthTextBox.LayoutOrder = 5
+RebirthTextBox.Parent = UIContainer
+
+local rebirthBoxCorner = Instance.new("UICorner")
+rebirthBoxCorner.CornerRadius = UDim.new(0, 6)
+rebirthBoxCorner.Parent = RebirthTextBox
 
 local LockOverlayFrame = Instance.new("Frame")
 LockOverlayFrame.Name = "LockOverlayFrame"
@@ -136,6 +156,8 @@ local LockListLayout = Instance.new("UIListLayout")
 LockListLayout.Padding = UDim.new(0, 10)
 LockListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 LockListLayout.Parent = LockOverlayFrame
+
+local setclipb = setclipboard or toclipboard or (Clipboard and Clipboard.set)
 
 local JoinButton = Instance.new("TextButton")
 JoinButton.Name = "JoinButton"
@@ -163,8 +185,8 @@ StatusLabel.Font = Enum.Font.SourceSansItalic
 StatusLabel.LayoutOrder = 2
 StatusLabel.Parent = LockOverlayFrame
 
-local states = { Click = false, Hatch = false }
-local cooldowns = { Click = 0.1, Hatch = 0.7 }
+local states = { Click = false, Hatch = false, Rebirth = false }
+local cooldowns = { Click = 0.1, Hatch = 0.7, Rebirth = 0.5 }
 local isUnlocked = false
 local copyActive = false
 
@@ -188,25 +210,23 @@ local function startHatchLoop()
 	end
 end
 
-JoinButton.MouseButton1Click:Connect(function()
-	-- Clean string concatenation prevents clipping issues in exploit environments
-	local domainBase = "https://discord.gg/"
-	local activeInviteCode = "keekmQyNn"
-	local cleanServerLink = domainBase .. activeInviteCode
-	
-	-- Clipboard fallback compatibility checks
-	local clipboardFunc = setclipboard or toclipboard or (Clipboard and Clipboard.set)
-	if clipboardFunc then
-		clipboardFunc(cleanServerLink)
+local function startRebirthLoop()
+	while states.Rebirth and isUnlocked do
+		local amountNum = tonumber(RebirthTextBox.Text) or 1
+		RebirthEvent:FireServer(1, amountNum)
+		task.wait(cooldowns.Rebirth)
 	end
+end
+
+JoinButton.MouseButton1Click:Connect(function()
+	local fullLink = "https://discord.gg"
+	if setclipb then setclipb(fullLink) end
 	
 	if not copyActive then
 		copyActive = true
 		JoinButton.Text = "Link Copied!"
 		tweenColor(JoinButton, Color3.fromRGB(50, 180, 50))
-		
 		task.wait(2)
-		
 		JoinButton.Text = "Join Discord Server"
 		tweenColor(JoinButton, Color3.fromRGB(114, 137, 218))
 		copyActive = false
@@ -239,6 +259,19 @@ HatchButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+RebirthButton.MouseButton1Click:Connect(function()
+	if not isUnlocked then return end
+	states.Rebirth = not states.Rebirth
+	if states.Rebirth then
+		RebirthButton.Text = "Auto Rebirth [ON]"
+		tweenColor(RebirthButton, Color3.fromRGB(50, 180, 50))
+		task.spawn(startRebirthLoop)
+	else
+		RebirthButton.Text = "Auto Rebirth [OFF]"
+		tweenColor(RebirthButton, Color3.fromRGB(200, 50, 50))
+	end
+end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 	if gameProcessedEvent then return end
 	if input.KeyCode == Enum.KeyCode.E then
@@ -251,7 +284,6 @@ task.spawn(function()
 		StatusLabel.Text = "Unlocking in " .. i .. "s..."
 		task.wait(1)
 	end
-	
 	isUnlocked = true
 	LockOverlayFrame.Visible = false
 	UIContainer.Visible = true
