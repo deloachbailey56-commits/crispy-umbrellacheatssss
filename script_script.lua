@@ -18,51 +18,50 @@ local Window = Rayfield:CreateWindow({
     DisableBuildWarnings   = false,
 })
 
-local MainTab = Window:CreateTab('Player Stats', 0)
+local MainTab = Window:CreateTab('Unknown Game', 0)
 
-local statsEnabled = false
-local statsDrawings = {}
-local function removeStats(p)
-  if statsDrawings[p] then
-    for _, d in pairs(statsDrawings[p]) do d:Remove() end
-    statsDrawings[p] = nil
-  end
+local fullEspOn = false
+local fBoxes={} local fBars={} local fNames={} local fVel={}
+local function removeFull(p)
+  if fBoxes[p] then fBoxes[p]:Remove() fBoxes[p]=nil end
+  if fBars[p] then fBars[p]:Remove() fBars[p]=nil end
+  if fNames[p] then fNames[p]:Remove() fNames[p]=nil end
+  if fVel[p] then fVel[p]:Remove() fVel[p]=nil end
 end
-Players.PlayerRemoving:Connect(removeStats)
-task.spawn(function()
-  while true do
-    task.wait(0.5)
-    if not statsEnabled then
-      for p in pairs(statsDrawings) do removeStats(p) end
-    else
-      for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LP and p.Character then
-          local hrp = p.Character:FindFirstChild('HumanoidRootPart')
-          local hum = p.Character:FindFirstChildOfClass('Humanoid')
-          if hrp and hum then
-            local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-            if not statsDrawings[p] then
-              local t = Drawing.new('Text') t.Size=13 t.Color=Color3.new(0,1,1) t.Outline=true t.Center=true t.Visible=false
-              statsDrawings[p] = {t}
-            end
-            local vel = math.floor(hrp.Velocity.Magnitude)
-            local hp = math.floor(hum.Health)
-            local maxhp = math.floor(hum.MaxHealth)
-            statsDrawings[p][1].Visible = vis
-            if vis then
-              statsDrawings[p][1].Position = Vector2.new(pos.X, pos.Y - 60)
-              statsDrawings[p][1].Text = p.Name .. '  HP:'..hp..'/'..maxhp..'  Vel:'..vel
-            end
-          end
-        elseif statsDrawings[p] then
-          removeStats(p)
+Players.PlayerRemoving:Connect(removeFull)
+RS.RenderStepped:Connect(function()
+  for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LP and p.Character then
+      local hrp = p.Character:FindFirstChild('HumanoidRootPart')
+      local hum = p.Character:FindFirstChildOfClass('Humanoid')
+      if hrp and hum then
+        local pos, vis = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+        if not fBoxes[p] then
+          local b=Drawing.new('Square') b.Visible=false b.Color=Color3.new(1,0,0) b.Thickness=1 b.Filled=false fBoxes[p]=b
+          local bar=Drawing.new('Square') bar.Visible=false bar.Thickness=0 bar.Filled=true fBars[p]=bar
+          local n=Drawing.new('Text') n.Visible=false n.Color=Color3.new(1,1,1) n.Size=13 n.Center=true n.Outline=true fNames[p]=n
+          local v=Drawing.new('Text') v.Visible=false v.Color=Color3.new(0,1,1) v.Size=12 v.Center=true v.Outline=true fVel[p]=v
+        end
+        local show = fullEspOn and vis
+        fBoxes[p].Visible=show fBars[p].Visible=show fNames[p].Visible=show fVel[p].Visible=show
+        if show then
+          local sz=2000/pos.Z
+          local ratio=math.clamp(hum.Health/hum.MaxHealth,0,1)
+          fBoxes[p].Size=Vector2.new(sz,sz*2)
+          fBoxes[p].Position=Vector2.new(pos.X-sz/2,pos.Y-sz)
+          fBars[p].Size=Vector2.new(4,sz*2*ratio)
+          fBars[p].Position=Vector2.new(pos.X-sz/2-7,pos.Y-sz+(sz*2*(1-ratio)))
+          fBars[p].Color=Color3.new(1-ratio,ratio,0)
+          fNames[p].Text=p.Name..' ['..math.floor(hum.Health)..']'
+          fNames[p].Position=Vector2.new(pos.X,pos.Y-sz-15)
+          fVel[p].Text='vel:'..math.floor(hrp.Velocity.Magnitude)
+          fVel[p].Position=Vector2.new(pos.X,pos.Y+sz+4)
         end
       end
-    end
+    elseif fBoxes[p] then removeFull(p) end
   end
 end)
-MainTab:CreateToggle({Name='Player Stats (Health+Vel)',CurrentValue=false,Callback=function(v) statsEnabled=v end})
+MainTab:CreateToggle({Name='Full ESP',CurrentValue=false,Callback=function(v) fullEspOn=v end})
 
--- Cobalt Remote Spy (always last)
 local CobaltTab = Window:CreateTab('Remote Spy', 4483362458)
 CobaltTab:CreateButton({Name = 'Open Cobalt Spy', Callback = function() loadstring(game:HttpGet('https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau'))() end})
