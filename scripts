@@ -1,285 +1,123 @@
+getgenv().RAYFIELD_ASSET_ID = 110785486010149
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local BoostRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("generateBoost")
 local ExplodeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("explodeRocket")
 local SellRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("sellBricks")
 local AreaRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("areaChanged")
 
-local rocketAttackID = 1782838950.9988751
-local explosionRadius = 15
+local rocketAttackID, explosionRadius = 1782838950.9988751, 15
+local selectedArea = "Select Area..."
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = CoreGui
-ScreenGui.Name = "ModernHubDashboard"
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 360, 0, 240)
-MainFrame.Position = UDim2.new(0.5, -180, 0.4, -120)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 6)
-MainCorner.Parent = MainFrame
-
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 110, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = MainFrame
-
-local SidebarCorner = Instance.new("UICorner")
-SidebarCorner.CornerRadius = UDim.new(0, 6)
-SidebarCorner.Parent = Sidebar
-
-local SidebarBlock = Instance.new("Frame")
-SidebarBlock.Size = UDim2.new(0, 10, 1, 0)
-SidebarBlock.Position = UDim2.new(1, -10, 0, 0)
-SidebarBlock.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-SidebarBlock.BorderSizePixel = 0
-SidebarBlock.Parent = Sidebar
-
-local Tab1Btn = Instance.new("TextButton")
-Tab1Btn.Size = UDim2.new(1, -10, 0, 35)
-Tab1Btn.Position = UDim2.new(0, 5, 0, 15)
-Tab1Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Tab1Btn.Text = "Destruction"
-Tab1Btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-Tab1Btn.Font = Enum.Font.GothamBold
-Tab1Btn.TextSize = 12
-Tab1Btn.BorderSizePixel = 0
-Tab1Btn.Parent = Sidebar
-
-local Tab1Corner = Instance.new("UICorner")
-Tab1Corner.CornerRadius = UDim.new(0, 4)
-Tab1Corner.Parent = Tab1Btn
-
-local Tab2Btn = Instance.new("TextButton")
-Tab2Btn.Size = UDim2.new(1, -10, 0, 35)
-Tab2Btn.Position = UDim2.new(0, 5, 0, 55)
-Tab2Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-Tab2Btn.Text = "Economy Boost"
-Tab2Btn.TextColor3 = Color3.fromRGB(140, 140, 140)
-Tab2Btn.Font = Enum.Font.GothamBold
-Tab2Btn.TextSize = 12
-Tab2Btn.BorderSizePixel = 0
-Tab2Btn.Parent = Sidebar
-
-local Tab2Corner = Instance.new("UICorner")
-Tab2Corner.CornerRadius = UDim.new(0, 4)
-Tab2Corner.Parent = Tab2Btn
-
-local FooterBar = Instance.new("Frame")
-FooterBar.Size = UDim2.new(1, -120, 0, 25)
-FooterBar.Position = UDim2.new(0, 115, 1, -30)
-FooterBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-FooterBar.BorderSizePixel = 0
-FooterBar.Parent = MainFrame
-
-local FooterCorner = Instance.new("UICorner")
-FooterCorner.CornerRadius = UDim.new(0, 4)
-FooterCorner.Parent = FooterBar
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -10, 1, 0)
-StatusLabel.Position = UDim2.new(0, 5, 0, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "STATUS: STANDBY"
-StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusLabel.Font = Enum.Font.GothamMedium
-StatusLabel.TextSize = 10
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.Parent = FooterBar
-
-local DestructFrame = Instance.new("Frame")
-DestructFrame.Size = UDim2.new(1, -120, 1, -45)
-DestructFrame.Position = UDim2.new(0, 115, 0, 10)
-DestructFrame.BackgroundTransparency = 1
-DestructFrame.Parent = MainFrame
-
-local DropdownBackground = Instance.new("Frame")
-DropdownBackground.Size = UDim2.new(1, 0, 0, 35)
-DropdownBackground.Position = UDim2.new(0, 0, 0, 10)
-DropdownBackground.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-DropdownBackground.BorderSizePixel = 0
-DropdownBackground.Parent = DestructFrame
-
-local DropCorner = Instance.new("UICorner")
-DropCorner.CornerRadius = UDim.new(0, 4)
-DropCorner.Parent = DropdownBackground
-
-local TargetAreaInput = Instance.new("TextBox")
-TargetAreaInput.Size = UDim2.new(1, -10, 1, 0)
-TargetAreaInput.Position = UDim2.new(0, 5, 0, 0)
-TargetAreaInput.BackgroundTransparency = 1
-TargetAreaInput.Text = "Area1" 
-TargetAreaInput.PlaceholderText = "Enter Target Area Folder..."
-TargetAreaInput.TextColor3 = Color3.fromRGB(220, 220, 220)
-TargetAreaInput.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
-TargetAreaInput.Font = Enum.Font.GothamMedium
-TargetAreaInput.TextSize = 12
-TargetAreaInput.TextXAlignment = Enum.TextXAlignment.Left
-TargetAreaInput.Parent = DropdownBackground
-
-local ExplodeButton = Instance.new("TextButton")
-ExplodeButton.Size = UDim2.new(1, 0, 0, 40)
-ExplodeButton.Position = UDim2.new(0, 0, 0, 55)
-ExplodeButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ExplodeButton.Text = "EXECUTE AREA DEMOLITION"
-ExplodeButton.TextColor3 = Color3.fromRGB(240, 240, 240)
-ExplodeButton.Font = Enum.Font.GothamBold
-ExplodeButton.TextSize = 11
-ExplodeButton.BorderSizePixel = 0
-ExplodeButton.Parent = DestructFrame
-
-local ExplodeCorner = Instance.new("UICorner")
-ExplodeCorner.CornerRadius = UDim.new(0, 4)
-ExplodeCorner.Parent = ExplodeButton
-
-local BoostFrame = Instance.new("Frame")
-BoostFrame.Size = UDim2.new(1, -120, 1, -45)
-BoostFrame.Position = UDim2.new(0, 115, 0, 10)
-BoostFrame.BackgroundTransparency = 1
-BoostFrame.Visible = false
-BoostFrame.Parent = MainFrame
-
-local BoostButton = Instance.new("TextButton")
-BoostButton.Size = UDim2.new(1, 0, 0, 40)
-BoostButton.Position = UDim2.new(0, 0, 0, 10)
-BoostButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-BoostButton.Text = "INJECT COIN INFUSION"
-BoostButton.TextColor3 = Color3.fromRGB(240, 240, 240)
-BoostButton.Font = Enum.Font.GothamBold
-BoostButton.TextSize = 11
-BoostButton.BorderSizePixel = 0
-BoostButton.Parent = BoostFrame
-
-local BoostCorner = Instance.new("UICorner")
-BoostCorner.CornerRadius = UDim.new(0, 4)
-BoostCorner.Parent = BoostButton
-
-Tab1Btn.MouseButton1Click:Connect(function()
-    Tab1Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Tab1Btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-    Tab2Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    Tab2Btn.TextColor3 = Color3.fromRGB(140, 140, 140)
-    DestructFrame.Visible = true
-    BoostFrame.Visible = false
-end)
-
-Tab2Btn.MouseButton1Click:Connect(function()
-    Tab2Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Tab2Btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-    Tab1Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    Tab1Btn.TextColor3 = Color3.fromRGB(140, 140, 140)
-    BoostFrame.Visible = true
-    DestructFrame.Visible = false
-end)
-
-local function getEquippedLauncher()
-    local character = LocalPlayer.Character
-    if character and character:FindFirstChild("Launcher") then
-        return character.Launcher
+-- Generate dynamic list of available maps from workspace directory
+local function getAreaOptions()
+    local options = {}
+    local areasFolder = workspace:FindFirstChild("Areas")
+    if areasFolder then
+        for _, folder in ipairs(areasFolder:GetChildren()) do
+            if folder:IsA("Folder") then
+                table.insert(options, folder.Name)
+            end
+        end
     end
-    return LocalPlayer.Backpack:FindFirstChild("Launcher")
+    if #options == 0 then table.insert(options, "Area1") end -- Default fallback
+    return options
 end
 
-BoostButton.MouseButton1Click:Connect(function()
-    StatusLabel.Text = "STATUS: PACKING BOOST STRINGS..."
-    BoostRemote:FireServer("CoinBoost", 180, 2)
-    task.wait(0.2)
-    StatusLabel.Text = "STATUS: COIN BOOST COMPLETED"
-end)
+-- Initialize Window UI Setup
+local Window = Rayfield:CreateWindow({
+   Name = "Exploitation Hub Menu",
+   LoadingTitle = "Loading System Packages...",
+   LoadingSubtitle = "by Loop",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   Discord = {
+      Enabled = false
+   },
+   KeySystem = false
+})
 
-ExplodeButton.MouseButton1Click:Connect(function()
-    StatusLabel.Text = "STATUS: SCANNING EQUIPMENT PIPES..."
-    
-    local launcher = getEquippedLauncher()
-    if not launcher then 
-        StatusLabel.Text = "STATUS: CRITICAL ERROR - NO LAUNCHER"
-        return 
-    end
-    
-    local launcherStats = launcher:FindFirstChild("Stats")
-    local rocketBoom = launcher:FindFirstChild("Assets") 
-        and launcher.Assets:FindFirstChild("Rocket") 
-        and launcher.Assets.Rocket:FindFirstChild("Boom")
-        
-    if not launcherStats or not rocketBoom then 
-        StatusLabel.Text = "STATUS: ASSET STRUCTURE MISSING"
-        return 
-    end
-    
-    local chosenArea = TargetAreaInput.Text
-    local areasFolder = workspace:FindFirstChild("Areas")
-    local targetFolder = areasFolder and areasFolder:FindFirstChild(chosenArea)
-    
-    if not targetFolder then
-        StatusLabel.Text = "STATUS: TARGET METRIC DIRECTORY NOT FOUND"
-        return
-    end
-    
-    -- Syncs target input directory directly with the server zone validation pipeline
-    StatusLabel.Text = "STATUS: SYNCHRONIZING AREA CONTEXT..."
-    AreaRemote:FireServer(chosenArea)
-    task.wait(0.1) -- Yields briefly to allow server verification to pass
-    
-    StatusLabel.Text = "STATUS: RESOLVING BLAST MATH DISTANCES..."
-    local explosionPositions = {}
-    local rocketsFired = 0
-    
-    for _, item in ipairs(targetFolder:GetDescendants()) do
-        if item:IsA("BasePart") then
-            local pos = item.Position
-            local alreadyCovered = false
-            
-            for _, existingPos in ipairs(explosionPositions) do
-                if (pos - existingPos).Magnitude < explosionRadius then
-                    alreadyCovered = true
-                    break
-                end
-            end
-            
-            if not alreadyCovered then
-                table.insert(explosionPositions, pos)
-                rocketsFired = rocketsFired + 1
-                
-                ExplodeRemote:FireServer(rocketAttackID, launcherStats, pos, rocketBoom)
-                
-                if rocketsFired % 5 == 0 then
-                    task.wait(0.01)
-                end
-            end
-        end
-    end
-    
-    StatusLabel.Text = "STATUS: RECOVERING... SELLING IN 10 SECONDS"
-    
-    task.spawn(function()
-        for count = 9, 1, -1 do
-            task.wait(1)
-            StatusLabel.Text = "STATUS: CLEARING FIELD... SELLING IN " .. count .. "s"
-        end
-        task.wait(1)
-        
-        StatusLabel.Text = "STATUS: DISPATCHING COLLECTION CALL..."
-        SellRemote:FireServer()
-        task.wait(0.5)-- Automatically signs character state back to NoZone fallback profile after sell routine
-        AreaRemote:FireServer("NoZone")
-        StatusLabel.Text = "STATUS: COMPLETE CYCLED SEQUENCING"
-    end)
-end)
+local MainTab = Window:CreateTab("Main Utilities", nil)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        ScreenGui.Enabled = not ScreenGui.Enabled
-    end
-end)
+-- Dropdown Component Integration
+local AreaDropdown = MainTab:CreateDropdown({
+   Name = "Select Target Area",
+   Options = getAreaOptions(),
+   CurrentOption = {"Select Area..."},
+   MultipleOptions = false,
+   Callback = function(Option)
+      selectedArea = Option[1]
+   end,
+})
+
+-- Demolition Execution Action Button Component
+MainTab:CreateButton({
+   Name = "EXECUTE AREA DEMOLITION",
+   Callback = function()
+      if selectedArea == "Select Area..." then
+         Rayfield:Notify({Name = "Error", Content = "Please select a target zone first!", Duration = 3})
+         return
+      end
+
+      local lnc = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Launcher")) or LocalPlayer.Backpack:FindFirstChild("Launcher")
+      if not lnc then 
+         Rayfield:Notify({Name = "Error", Content = "Equip or carry a Launcher!", Duration = 3})
+         return 
+      end
+      
+      local stats = lnc:FindFirstChild("Stats")
+      local boom = lnc:FindFirstChild("Assets") and lnc.Assets:FindFirstChild("Rocket") and lnc.Assets.Rocket:FindFirstChild("Boom")
+      if not stats or not boom then 
+         Rayfield:Notify({Name = "Error", Content = "Launcher assets are missing!", Duration = 3})
+         return 
+      end
+      
+      local target = workspace.Areas:FindFirstChild(selectedArea) 
+      if not target then 
+         Rayfield:Notify({Name = "Error", Content = "Target directory not found!", Duration = 3})
+         return 
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Synchronizing zone validation...", Duration = 2})
+      AreaRemote:FireServer(selectedArea) 
+      task.wait(0.1)
+      
+      Rayfield:Notify({Name = "Status", Content = "Resolving proximity calculations...", Duration = 2})
+      local tracking, fired = {}, 0
+      for _, item in ipairs(target:GetDescendants()) do
+         if item:IsA("BasePart") then
+            local pos, covered = item.Position, false
+            for _, ePos in ipairs(tracking) do if (pos - ePos).Magnitude < explosionRadius then covered = true break end end
+            if not covered then
+               table.insert(tracking, pos) 
+               fired = fired + 1
+               ExplodeRemote:FireServer(rocketAttackID, stats, pos, boom)
+               if fired % 5 == 0 then task.wait(0.01) end
+            end
+         end
+      end
+      
+      Rayfield:Notify({Name = "Status", Content = "Sequence complete. Selling field in 10 seconds...", Duration = 5})
+      task.spawn(function()
+         task.wait(10)
+         SellRemote:FireServer()
+         task.wait(0.5)
+         AreaRemote:FireServer("NoZone")
+         Rayfield:Notify({Name = "Status", Content = "Cycled automation routine complete.", Duration = 3})
+      end)
+   end,
+})
+
+-- Economy Booster Trigger Component
+MainTab:CreateButton({
+   Name = "INJECT COIN INFUSION BOOST",
+   Callback = function()
+      BoostRemote:FireServer("CoinBoost", 180, 2)
+      Rayfield:Notify({Name = "Success", Content = "Coin boost packet successfully sent!", Duration = 3})
+   end,
+})
