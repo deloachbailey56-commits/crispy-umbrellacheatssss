@@ -1,69 +1,51 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AdminDebugUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local isToggledOn = false
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 300)
-MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Match Debug Panel"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Title.Parent = MainFrame
-
-local PlayerList = Instance.new("ScrollingFrame")
-PlayerList.Size = UDim2.new(1, -10, 1, -40)
-PlayerList.Position = UDim2.new(0, 5, 0, 35)
-PlayerList.BackgroundTransparency = 1
-PlayerList.CanvasSize = UDim2.new(0, 0, 5, 0)
-PlayerList.Parent = MainFrame
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 5)
-UIListLayout.Parent = PlayerList
-
-local function refreshPlayerList()
-    for _, child in ipairs(PlayerList:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local Button = Instance.new("TextButton")
-            Button.Size = UDim2.new(1, 0, 0, 35)
-            Button.Text = "Test Remote: " .. player.Name
-            Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Button.Parent = PlayerList
+    if input.KeyCode == Enum.KeyCode.Q then
+        isToggledOn = not isToggledOn
+    end
+end)
+
+while true do
+    if isToggledOn then
+        local myChar = LocalPlayer.Character
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") and remotes then
+            local stabRemote = remotes:FindFirstChild("Stab")
+            local gunRemote = remotes:FindFirstChild("ShootGun")
             
-            Button.MouseButton1Click:Connect(function()
-                if player.Character and player.Character:FindFirstChild("LeftUpperArm") then
-                    local targetPart = player.Character.LeftUpperArm
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
                     
-                    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                    if remotes and remotes:FindFirstChild("Stab") then
-                        remotes.Stab:FireServer(targetPart)
-                    else
-                        warn("Remote structure not found in ReplicatedStorage.")
+                    if stabRemote then
+                        local targetArm = player.Character:FindFirstChild("LeftUpperArm")
+                        if targetArm then stabRemote:FireServer(targetArm) end
                     end
+                    
+                    if gunRemote then
+                        local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                        if targetRoot then
+                            local ohVector31 = myChar.HumanoidRootPart.Position
+                            local ohVector32 = targetRoot.Position
+                            local ohInstance3 = targetRoot
+                            local ohVector34 = (ohVector32 - ohVector31).Unit
+                            
+                            gunRemote:FireServer(ohVector31, ohVector32, ohInstance3, ohVector34)
+                        end
+                    end
+                    
                 end
-            end)
+            end
         end
     end
+    
+    task.wait(1) 
 end
-
-Players.PlayerAdded:Connect(refreshPlayerList)
-Players.PlayerRemoving:Connect(refreshPlayerList)
-refreshPlayerList()
