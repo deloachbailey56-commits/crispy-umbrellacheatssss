@@ -1,0 +1,89 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local isToggledOn = false
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StatusUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 150, 0, 35)
+StatusLabel.Position = UDim2.new(1, -160, 0, 10)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+StatusLabel.BorderSizePixel = 0
+StatusLabel.Text = "COMBAT: OFF"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.TextSize = 16
+StatusLabel.Parent = ScreenGui
+
+local function getClosestPlayerHumanoid()
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local myPosition = myChar.HumanoidRootPart.Position
+    local closestHumanoid = nil
+    local shortestDistance = math.huge
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetRoot = player.Character.HumanoidRootPart
+            local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if targetHumanoid and targetHumanoid.Health > 0 then
+                local distance = (myPosition - targetRoot.Position).Magnitude
+                
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestHumanoid = targetHumanoid
+                end
+            end
+        end
+    end
+    
+    return closestHumanoid
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    
+    if input.KeyCode == Enum.KeyCode.Q then
+        isToggledOn = not isToggledOn
+        if isToggledOn then
+            StatusLabel.Text = "COMBAT: ON"
+            StatusLabel.TextColor3 = Color3.fromRGB(75, 255, 75)
+        else
+            StatusLabel.Text = "COMBAT: OFF"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+        end
+    end
+end)
+
+while true do
+    if isToggledOn then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        
+        if remotes then
+            local targetHumanoid = getClosestPlayerHumanoid()
+            
+            if targetHumanoid then
+                local shurikenRemote = remotes:FindFirstChild("OnShurikenDamage")
+                local boStaffRemote = remotes:FindFirstChild("OnBoStaffDamage")
+                
+                if shurikenRemote then
+                    shurikenRemote:FireServer(targetHumanoid)
+                end
+                
+                if boStaffRemote then
+                    boStaffRemote:FireServer(targetHumanoid)
+                end
+            end
+        end
+    end
+    
+    task.wait(0.3)
+end
