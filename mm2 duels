@@ -1,3 +1,6 @@
+getgenv().RAYFIELD_ASSET_ID = 110785486010149
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -5,13 +8,39 @@ local LocalPlayer = Players.LocalPlayer
 
 local isToggledOn = false
 
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end
-    
-    if input.KeyCode == Enum.KeyCode.Q then
+local Window = Rayfield:CreateWindow({
+	Name = "Match Debug Panel",
+	LoadingTitle = "Match Debug",
+	LoadingSubtitle = "Admin Tools",
+	ConfigurationSaving = {
+		Enabled = false,
+	},
+	KeySystem = false,
+})
+
+local Tab = Window:CreateTab("Main", "code")
+
+Tab:CreateToggle({
+    Name = "Kill Farm",
+    CurrentValue = isToggledOn,
+	Callback = function(Value)
+        if Value then
+            isToggledOn = true
+        else
+            isToggledOn = false
+        end
+	end,
+})
+
+local Keybind = Tab:CreateKeybind({
+   Name = "Keybind Example",
+   CurrentKeybind = "Q",
+   HoldToInteract = false,
+   Flag = "Keybind1",
+   Callback = function(Keybind)
         isToggledOn = not isToggledOn
-    end
-end)
+   end,
+})
 
 while true do
     if isToggledOn then
